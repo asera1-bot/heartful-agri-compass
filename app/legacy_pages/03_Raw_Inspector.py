@@ -68,7 +68,7 @@ df_display = df.rename(
 )
 
 st.subheader("平均値サマリ（農場 × 月）")
-st.dataframe(df_display, use_container_width=True, hide_index=True)
+st.dataframe(df_display, width="stretch", hide_index=True)
 
 # ----------------- 相関 -----------------
 corr_temp = df["mean_temp"].corr(df["mean_kg"])
@@ -123,7 +123,7 @@ with cols1:
             .mark_line()
             .encode(x="mean_temp:Q", y="pred_kg:Q")
         )
-        st.altair_chart(scatter + line, use_container_width=True)
+        st.altair_chart(scatter + line, width="stretch")
     else:
         st.info("温度と収量の回帰を行うにはデータが足りません。")
 
@@ -169,7 +169,7 @@ with cols1:
             .encode(x="mean_vpd_kpa:Q", y="pred:Q")
         )
 
-        st.altair_chart(scatter_v + line_v, use_container_width=True)
+        st.altair_chart(scatter_v + line_v, width="stretch")
 
 # ---------- 右カラム：湿度 ＋ 重回帰 ----------
 with cols2:

@@ -33,7 +33,7 @@ col1, col2 = st.columns([1,2], gap="large")
 
 with col1:
     st.subheader("テーブル件数")
-    st.dataframe(load_counts(), use_container_width=True, hide_index=True)
+    st.dataframe(load_counts(), width="stretch", hide_index=True)
 
 with col2:
     st.subheader("月次合計（全ファーム）")

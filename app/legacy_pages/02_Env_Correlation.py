@@ -52,7 +52,7 @@ har = harvest_in_month(sel_month)
 left, right = st.columns(2)
 with left:
     st.subheader(f"収量ランキング ({sel_month})")
-    st.dataframe(har, use_container_width=True, hide_index=True)
+    st.dataframe(har, width="stretch", hide_index=True)
 
 with right:
     st.subheader(f"環境データ ({sel_month})")
@@ -119,7 +119,7 @@ if not filtered.empty:
         labels={"avg_temp": "平均温度（℃）", "total_kg": "収量（kg）"},
         title="平均温度と収量の相関",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # 散布図（湿度）
     fig2 = px.scatter(
@@ -131,7 +131,7 @@ if not filtered.empty:
         labels={"avg_humid": "平均湿度（％）", "total_kg": "収量（kg）"},
         title="平均湿度と収量の相関",
     )
-    st.plotly_chart(fig2, use_container_width=True)
+    st.plotly_chart(fig2, width="stretch")
 
     st.subheader("統計サマリ")
 
@@ -191,7 +191,7 @@ if not filtered.empty:
             st.info("湿度データが少なすぎて相関を計算できません。")
 
     st.subheader("対象データ")
-    st.dataframe(filtered, use_container_width=True, hide_index=True)
+    st.dataframe(filtered, width="stretch", hide_index=True)
 else:
     st.info("該当データがありません。")
 import numpy as np
@@ -240,7 +240,7 @@ har = harvest_in_month(sel_month)
 left, right = st.columns(2)
 with left:
     st.subheader(f"収量ランキング({sel_month})")
-    st.dataframe(har, use_container_width=True, hide_index=True)
+    st.dataframe(har, width="stretch", hide_index=True)
 
 with right:
     st.subheader(f"環境データ({sel_month})")

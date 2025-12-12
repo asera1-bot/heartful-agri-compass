@@ -110,7 +110,7 @@ def main() -> None:
     ].copy()
 
     st.subheader("月次収量一覧")
-    st.dataframe(df_display, use_container_width=True, hide_index=True)
+    st.dataframe(df_display, width="stretch", hide_index=True)
 
     # ===== グラフタブ =====
     tab_brand, tab_category, tab_crop = st.tabs(
@@ -139,7 +139,7 @@ def main() -> None:
                 ],
             )
         )
-        st.altair_chart(chart_brand, use_container_width=True)
+        st.altair_chart(chart_brand, width="stretch")
 
     # 2) カテゴリー別（FRUIT / LEAF）の月次合計
     with tab_category:
@@ -160,7 +160,7 @@ def main() -> None:
                 tooltip=["farm_group", "category", "month", "total_kg"],
             )
         )
-        st.altair_chart(chart_cat, use_container_width=True)
+        st.altair_chart(chart_cat, width="stretch")
 
     # 3) 作物別（いちご・ミニトマトなど）の推移
     with tab_crop:
@@ -181,7 +181,7 @@ def main() -> None:
                 tooltip=["farm_group", "crop_name_ja", "month", "total_kg"],
             )
         )
-        st.altair_chart(chart_crop, use_container_width=True)
+        st.altair_chart(chart_crop, width="stretch")
 
 
 if __name__ == "__main__":

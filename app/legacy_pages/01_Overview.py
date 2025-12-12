@@ -26,7 +26,7 @@ f = df.copy()
 if sel_months: f = f[f["month"].isin(sel_months)]
 if sel_farms: f= f[f["farm"].isin(sel_farms)]
 
-st.dataframe(f, use_container_width=True, hide_index=True)
+st.dataframe(f, width="stretch", hide_index=True)
 
 if not f.empty:
     st.bar_chart(f, x="farm", y="total_kg", color="month")

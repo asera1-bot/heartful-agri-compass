@@ -108,7 +108,7 @@ def main() -> None:
             )
         )
 
-        st.altair_chart(chart_day, use_container_width=True)
+        st.altair_chart(chart_day, width="stretch")
 
         st.markdown(
             """
@@ -144,7 +144,7 @@ def main() -> None:
             )
         )
 
-        st.altair_chart(chart_month, use_container_width=True)
+        st.altair_chart(chart_month, width="stretch")
 
         st.markdown(
             """

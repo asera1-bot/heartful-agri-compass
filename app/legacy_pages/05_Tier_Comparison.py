@@ -86,7 +86,7 @@ def main() -> None:
     st.dataframe(
         df_sel[["farm", "tier", "month", "mean_kg", "mean_bpd_kpa", "mean_temp", "mean_humid"]],
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
     )
 
     # タブ: 収量 / VPD / 温度・湿度
@@ -131,7 +131,7 @@ def main() -> None:
             )
         )
 
-        st.altair_chart(chart_v, use_container_width=True)
+        st.altair_chart(chart_v, width="stretch")
 
         st.markdown(
             """
@@ -159,7 +159,7 @@ def main() -> None:
                     tooltip=["farm", "tier", "month", "mean_temp"],
                 )
             )
-            st.altair_chart(chart_t, use_container_width=True)
+            st.altair_chart(chart_t, width="stretch")
 
         with cols[1]:
             st.markdown("#### 平均温度の比較")
@@ -173,7 +173,7 @@ def main() -> None:
                     tooltip=["farm", "tier", "month", "mean_humid"],
                 )
             )
-            st.altair_chart(chart_h, use_container_width=True)
+            st.altair_chart(chart_h, width="stretch")
 
         st.markdown(
             """

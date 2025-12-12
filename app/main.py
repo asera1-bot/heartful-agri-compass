@@ -1,3 +1,9 @@
+import sys, os
+ROOT = os.path.dirname(os.path.abspath(__file__))
+PARENT = os.path.dirname(ROOT)
+sys.path.append(PARENT)
+
+
 import streamlit as st
 
 from core.auth import login_form, is_logged_in, logout_button

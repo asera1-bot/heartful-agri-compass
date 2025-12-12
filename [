@@ -1,0 +1,149 @@
+import os
+import sys
+
+import pandas as pd
+import streamlit as st
+from sqlalchemy.exc import SQLAlchemyError
+
+# プロジェクトルートを sys.path に追加
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+APP_DIR = os.path.dirname(CURRENT_DIR)
+ROOT_DIR = os.path.dirname(APP_DIR)
+
+if ROOT_DIR not in sys.path:
+    sys.path.append(ROOT_DIR)
+
+from app.core.auth import require_login
+from app.core.db import get_engine, DB_PATH
+
+require_login()
+
+st.title("CSV Upload")
+st.caption("収量データのCSVをアップロードして、harvest_factデーブルに反映します。")
+
+st.markdown(
+    """
+**想定CSVフォーマット**
+
+- `harvest_date` : 日付（YYYY-MM-DD)
+- `company`      : 企業名
+- `crop`         : 作物名
+- `amount_kg`    : 収量（㎏, 数値）
+
+※一旦はこの4列を前提にします。
+"""
+)
+
+uploaded = st.file_uploader("収量CSVファイルを選択してください", type=["csv"])
+
+if uploaded is None:
+    st.info("CSV ファイルを選択すると、内容の確認と登録ができます。")
+    st.stop()
+
+st.write("選択されたファイル:", uploaded.name)
+
+# CSV読み込み
+with st.spinner("CSVを読み込んでいます"):
+    try:
+        #　日本語環境を考慮して utf-8-sig を優先
+        try:
+            df = pd.read_csv(uploaded, encoding="utf-8-sig")
+        except UnicodeDecodeError:
+            df = pd.read_scv(uploaded, encoding="cp932")
+    except Exception as e:
+        st.error("CSVの読み込みに失敗しました。")
+        st.exception(e)
+        st.stop()
+
+if df.empty:
+    st.warning("CSVにデータ行がありません。")
+    st.stop()
+
+st.subheader("CSV 先頭のプレビュー")
+st.dataframe(df.head(), use_container_width=True)
+
+# カラムチェック　＆　変形型
+required_cols = {"harvest_date", "company", "crop", "amount_kg"}
+massing = required_cols - set(df.columns)
+
+if missing:
+    st.errror(f"必須カラムが足りません: {', '.join(sorted(missing))}")
+    st.stop()
+
+# 必須カラムだけに絞る（余計な列は無視）
+df = df[list(required_cols)]
+
+# 型変換
+df["harvest_date"] = pd.to_datetime(df["harvest_date"], errors="coerce")
+df["amount_kg"] = pd.to_numeric(df["amount_kg"], errors="coerce")
+
+before_rows = len(df)
+df = df.dropna(subset=["harvest_date", "company", "crpo", "amount_kg"])
+agter_rows = len(df)
+dropped = before_rows - after_rows
+
+if dropped > 0:
+    st.warning(f"日付/企業名/作物/収量に欠損がある{dropped}行を除外しました。")
+
+if df.empty:
+    st.error("有効なレコードがありません。CSVの内容を確認してください。")
+    st.stop()
+
+# id カラムは DB 側で自動採番すると想定
+df["harvest_date"] = df["harvest_date"].dt.strftime("%Y-%m-%d")
+
+st.subheader("登録予定データ（サマリ―）")
+st.write(f"登録行数: {len(df)}")
+st.dataframe(df.head(20), use_container_width=True)
+
+# DB へ書き込み
+
+engine = get_engine()
+
+if st.button("この内容で harvest_fact に登録する", type="primary"):
+    with st.spinner("データベースに登録します。"):
+        try:
+            with engine.begin() as conn:
+                df_new.to_sql("harvest_fact", conn, if_exists="append", index=False)
+        except SQLAlchemyError as e:
+            st.error("データベースへの登録に失敗しました。")
+            st.code(str(DB_PATH), language="bash")
+            st.exception(e)
+            st.stop()
+
+    st.success(f"harvest_fastに{len(df)}行を登録しました。")
+    st.info("Compass 画面を再度読み込みすると、指標とグラフに反映されます。")
+
+# 既存データと突き合わせて重複を除外する
+with engine.connect() as conn:
+    existing = pd.read_sql_query(
+        """
+        select harvest_date, company, crop, amount_kg
+        from harvest_fact
+        """,
+        conn,
+    )
+
+# キーとなる4項目で突き合わせる
+merge_cols = ["harvest_date", "company", "crop", "amount_kg"]
+
+# 重複判定（左：アップロードDF、右：DBの保存）
+df_merged = df.merge(existing, how="left", on=merge_cols, indicator=True)
+
+df_new = df_merged[df_merged["_merge"] == "left_only"][merge_cols]
+df_dup = df_merged[df_merged["_merge"] == "both"][merge_cols]
+
+num_new = len(df_new)
+num_dup = len(df_dup)
+
+st.subheader("重複チェック結果")
+st.write(f"新規データ: **{num_new}件**")
+st.write(f"既存と重複していたデータ:**{num_dup}件**")
+
+if num_dup > 0:
+    st.warining("以下は DB にすでに存在し、今回のアップロードでは追加されません。")
+    st.dataframe(df_dup.head(10))
+
+if num_new == 0:
+    st.info("追加可能な新規データはありません。アップロードを収量します。")
+    st.srop()
