@@ -4,17 +4,17 @@ import re
 
 import pandas as pd
 import numpy as np
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
 
 # ここでプロジェクトルートを import パスに追加
-ROOT_DIR = Path(__file__).resolve().parents[1]
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+BASE_DIR = Path(__file__).resolve().parents[1]
+DB_PATH = BASE_DIR / "db" / "heartful_dev.db"
+inbox_dir = BASE_DIR / "data" / "inbox" / "env"
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
-from db_config import get_engine  # db_config から get_engine を import
-
-engine = get_engine("real")       # ここで engine を作る
-
+from app.core.db import get_engine, DB_PATH
+engine = get_engine()
 
 # ========= テーブル保証系 =========
 def ensure_env_raw_table() -> None:
@@ -363,10 +363,6 @@ def rebuild_env_daily_and_views() -> None:
 
 # ========= メイン処理 =========
 if __name__ == "__main__":
-    inbox_dir = Path(
-        "/home/matsuoka/work-automation/heartful-analytics/data/inbox/env"
-    )
-
     if not inbox_dir.exists():
         raise FileNotFoundError(f"inbox ディレクトリがありません: {inbox_dir}")
 

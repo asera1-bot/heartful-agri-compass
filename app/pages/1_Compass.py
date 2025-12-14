@@ -1,13 +1,11 @@
 import os
 import sys
-from datetime import datetime
 
-import altair as alt
 import pandas as pd
 import streamlit as st
 from sqlalchemy.exc import OperationalError
 
-# プロジェクトルートを sys.path に追加（どこから実行してもappを解決するため）
+# プロジェクトルートをsys.pathに追加
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 APP_DIR = os.path.dirname(CURRENT_DIR)
 ROOT_DIR = os.path.dirname(APP_DIR)
@@ -26,184 +24,109 @@ st.caption("収量の全体傾向をざっくりつかむダッシュボード")
 
 engine = get_engine()
 
-# DB から大量データを取得
-with engine.connect() as conn:
-    df = pd.read_sql_query(
-        """
-        select harvest_date, company, crop, amount_kg
-        from harvest_fact
-        """,
-        conn,
-        parse_dates=["harvest_date"],
-    )
-
-if df.empty:
-    st.warning("まだ、harvest_factにデータが登録されていません。CSVアップロードからデータを登録してください。")
+# DBからデータ取得
+try:
+    with engine.connect() as conn:
+        df = pd.read_sql_query(
+            """
+            SELECT harvest_date, company, crop, amount_kg
+            FROM harvest_fact
+            """,
+            conn,
+            parse_dates=["harvest_date"]
+        )
+except OperationalError as e:
+    st.error(f"DB読み込みに失敗しました: {e}")
     st.stop()
 
-# 日付を datetime 型に変換
-df["harvest_date"] = pd.to_datetime(df["harvest_date"])
+if df.empty:
+    st.warning("harvest_factにデータが登録されていません。CSVアップロードからデータを登録してください。")
+    st.stop()
 
-# フィルター　UI
-st.subheader("フィルター")
+# 日付をdatetimeに変換
+df["harvest_date"] = pd.to_datetime(df["harvest_date"], errors="coerce")
+df["amount_kg"] = pd.to_numeric(df["amount_kg"], errors="coerce")
+df = df.dropna(subset=["amount_kg", "amount_kg", "company", "crop"]).copy()
 
-# 日付範囲
+# 表示・フィルタ用（日付だけ）
+df["harvest_day"] = df["harvest_date"].dt.date
+
+# フィルターUI
+st.subheader("期間フィルタ")
+
+from datetime import date, timedelta
+
 min_date = df["harvest_date"].min().date()
 max_date = df["harvest_date"].max().date()
 
-st.markdown("### 期間フィルタ")
+st.caption(f"DBデータ範囲: {min_date} ~ {max_date}")
 
 col1, col2 = st.columns(2)
 with col1:
     start_date = st.date_input(
         "開始日",
-        value=max_date.replace(day=1),
-        min_value=min_date,
-        max_value=max_date,
+        value=min_date,
     )
+
 with col2:
     end_date = st.date_input(
         "終了日",
         value=max_date,
-        min_value=min_date,
-        max_value=max_date,
     )
 
 if start_date > end_date:
     st.error("開始日が終了日より後になっています。期間を見直してください。")
     st.stop()
 
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+if start_date > end_date:
+    st.error("開始日が終了日よりも後です。")
+    st.stop()
+
 mask = (df["harvest_date"].dt.date >= start_date) & (df["harvest_date"].dt.date <= end_date)
 df_period = df[mask].copy()
+
+if df_period.empty:
+    msg = f"選択期間にデータなし: start={start_date}, end={end_date} (db_range={min_date}~{max_date})"
+    st.info("この期間にはデータがありません。CSV登録状況を確認してください。")
+    logger.info(msg)
+    print("[INFO]", msg)
+    st.stop()
+
+# まず期間で絞る（ここが土台）
+df_period = df[(df["harvest_day"] >= start_date) & (df["harvest_day"] <= end_date)].copy()
 
 if df_period.empty:
     st.warning("この期間にはデータがありません。別の期間を選んでください。")
     st.stop()
 
-st.markdown("### 🚀 KPI 概要")
-
-# KPI 指標（3つ）
-total_kg = df_period["amount_kg"].sum()
-days = df_period["harvest_date"].dt.date.nunique()
-companies = df_period["company"].nunique()
-crops = df_period["crop"].nunique()
-
-avg_per_day = total_kg / days if days > 0 else 0.0
-
-st.markdown("### KPI 概要")
-
-k1, k2, k3 = st.columns(3)
-
-with k1:
-    st.metric("期間累計収量[kg]", f"{total_kg:.1f}")
-with k2:
-    st.metric("1日あたり平均収量[kg/日]", f"{avg_per_day:.1f}")
-with k3:
-    st.metric("企業数 / 作物数", f"{companies} 社　/ {crops} 品目")
-
-# 企業別・作物別ランキング
-st.markdown("### 企業別収量ランキング")
-
-df_company = (
-    df_period
-    .groupby("company", as_index=False)["amount_kg"]
-    .sum()
-    .sort_values("amount_kg", ascending=False)
-)
-
-st.dataframe(df_company.head(5), width="stretch")
-
-st.markdown("### 作物別収量ランキング")
-
-df_company = (
-    df_period
-    .groupby("company", as_index=False)["amount_kg"]
-    .sum()
-    .sort_values("amount_kg", ascending=False)
-)
-
-st.dataframe(df_company.head(5), width="stretch")
-
-st.markdown("### 作物別収量ランキング")
-
-df_crop = (
-    df_period
-    .groupby("crop", as_index=False)["amount_kg"]
-    .sum()
-    .sort_values("amount_kg", ascending=False)
-)
-
-st.dataframe(df_crop.head(5), width="stretch")
-
-st.markdown("----")
-
-# 時系列グラフ
-df_daily = (
-    df_period
-    .groupby("harvest_date", as_index=False)["amount_kg"]
-    .sum()
-)
-
-chart = (
-    alt.Chart(df_daily)
-    .mark_line(point=True)
-    .encode(
-        x="harvest_date:T",
-        y="amount_kg:Q",
-        tooltip=["harvest_date:T", "amount_kg:Q"],
-    )
-    .properties(
-        height=250,
-        padding={"top": 30, "bottom": 10, "left": 10, "right": 10}
-    )
-)
-st.altair_chart(chart, use_container_width=True)
-
-
-bar = (
-    alt.Chart(df_company_rank)
-    .mark_bar(color="#4C78A8")
-    .encode(
-        x="amount_kg:Q",
-        y=alt.Y("company:N", sort="-x"),
-        tooltip=["company", "amount_kg"]
-    )
-    .properties(
-        height=200,
-        padding={"top": 20, "bottom":10}
-    )
-)
-
-# 企業フィルタ
+# 企業フィルタ/作物の選択肢は「期間内」に限定（ＵＩが軽くなる）
 all_companies = sorted(df["company"].unique().tolist())
-selected_companies = st.multiselect(
-    "企業（複数選択可）",
-    options=all_companies,
-    default=all_companies,
-)
-
-# 作物フィルタ
 all_crops = sorted(df["crop"].unique().tolist())
-selected_crops = st.multiselect(
-    "作物（複数選択可）",
-    options=all_crops,
-    default=all_crops,
-)
+
+st.subheader("企業・作物フィルタ")
+cc1, cc2 = st.columns(2)
+with cc1:
+    selected_companies = st.multiselect(
+        "企業（未選択＝全件）",
+        options=all_companies,
+        default=[],
+    )
+with cc2:
+    selected_crops = st.multiselect(
+        "作物（未選択＝全件）",
+        options=all_crops,
+        default=[],
+    )
 
 # フィルター適用
-filtered = df.copy()
+filtered = df_period.copy()
 
-# 日付
-filtered = filtered[
-    (filtered["harvest_date"].dt.date >= start_date)
-    & (filtered["harvest_date"].dt.date <= end_date)
-]
-
-# 企業
 if selected_companies:
     filtered = filtered[filtered["company"].isin(selected_companies)]
-
-# 作物
 if selected_crops:
     filtered = filtered[filtered["crop"].isin(selected_crops)]
 
@@ -211,47 +134,61 @@ if filtered.empty:
     st.warning("選択された条件に該当するデータがありません。フィルターを調整してください。")
     st.stop()
 
-# メトリクス
-st.markdown("---")
+if filtered.empty:
+    msg = f"フィルター条件でデータなし: start={start_date}, end={end_date}, companies={selected_companies}, crops={selected_crops}"
+    st.warning("選択された条件に該当するデータがありません。フィルターを調整してください。")
+    logger.info(msg)
+    print("[INFO]", msg)
+    st.stop()
 
-total_amount = float(filtered["amount_kg"].sum())
-latest_date = filtered["harvest_date"].max()
-latest_date_str = latest_date.strftime("%Y-%m-%d")
-latest_total = float(filtered.loc[filtered["harvest_date"] == latest_date, "amount_kg"].sum())
-num_companies = int(filtered["company"].nunique())
+# KPI指標（3つ）
+st.subheader("🚀KPI概要")
 
-col1, col2, col3 = st.columns(3)
-col1.metric("総収量（㎏）", f"{total_amount:.1f}")
-col2.metric(f"最新日({latest_date_str})の収量（㎏）", f"{latest_total:.1f}")
-col3.metric("企業数", f"{num_companies}")
+total_kg = float(filtered["amount_kg"].sum())
+days = int(filtered["harvest_day"].nunique())
+companies = int(filtered["company"].nunique())
+crops = int(filtered["crop"].nunique())
+avg_per_day = total_kg / days if days > 0 else 0.0
 
-st.markdown("----")
+k1, k2, k3 = st.columns(3)
+k1.metric("期間累計収量[kg]", f"{total_kg:.1f}")
+k2.metric("１日あたり平均収量[kg/日]", f"{avg_per_day:.1f}")
+k3.metric("企業数 / 作物数", f"{companies} 社 / {crops} 品目")
 
-# グラフ
-
-# 日別合計グラフ
-daily = (
-    filtered.groupby("harvest_date", as_index=False)["amount_kg"]
-    .sum()
-    .sort_values("harvest_date")
-)
-st.subheader("日別収量の推移")
-st.line_chart(daily, x="harvest_date", y="amount_kg")
-
-# 企業別合計グラフ
-company = (
+# ランキング（Top5）
+st.subheader("企業別収量ランキング(Top5)")
+df_company = (
     filtered.groupby("company", as_index=False)["amount_kg"]
     .sum()
     .sort_values("amount_kg", ascending=False)
 )
-st.subheader("企業別収量（合計）")
-st.bar_chart(company, x="company", y="amount_kg")
+st.dataframe(df_company.head(5), use_container_width=True)
 
-st.markdown("---")
+st.subheader("作物別収量ランキング(Top5)")
+df_crop = (
+    filtered.groupby("crop", as_index=False)["amount_kg"]
+    .sum()
+    .sort_values("amount_kg", ascending=False)
+)
+st.dataframe(df_crop.head(5), use_container_width=True)
+
+# グラフ
+st.subheader("日別収量の推移")
+df_daily = (
+    filtered.groupby("harvest_day", as_index=False)["amount_kg"]
+    .sum()
+    .sort_values("harvest_day")
+)
+st.line_chart(df_daily, x="harvest_day", y="amount_kg")
+
+st.subheader("企業別収量（合計）")
+top_n = st.slider("表示する企業数（TopN）", 5, 50, 10, 5)
+df_company_top = df_company.head(top_n)
+st.bar_chart(df_company_top, x="company", y="amount_kg")
 
 # 生データ
-st.subheader("生データ(harvest_fact)")
+st.subheader("生データ(harvest_fact")
+show_cols = ["harvest_day", "company", "crop", "amount_kg"]
 st.dataframe(
-    filtered.sort_values(["harvest_date", "company", "crop"]),
-    width="stretch",
-)
+    filtered[show_cols].sort_values(["harvest_day", "company", "crop"]),
+    width="stretch")

@@ -2,7 +2,7 @@ from pathlib import Path
 from sqlalchemy import create_engine
 
 # /home/matsuoka/work-automation/heartful-agri-compassを指すはず
-ROOT_DIR = Path("/home/matsuoka/work-automation/heartful-agri-compass")
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
 # dbディテクトリ
 DB_DIR = ROOT_DIR / "db"

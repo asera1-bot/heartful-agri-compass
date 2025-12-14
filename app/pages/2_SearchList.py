@@ -52,7 +52,7 @@ if df.empty:
     st.warning("収量データが登録されません。CSVアップロードからデータを登録してください。")
     st.stop()
 
-df["hravest_date"] = pd.to_datetime(df["harvest_date"])
+df["harvest_date"] = pd.to_datetime(df["harvest_date"])
 
 # フィルター　UI
 st.subheader("検索条件")
@@ -114,50 +114,38 @@ st.success(f"{len(filtered)} 件のデータがヒットしました。")
 # CSVダウンロード
 csv_bytes = filtered.to_csv(index=False).encode("utf-8-sig")
 
-with st.container(border=True):
-    st.markdown("### 📌 対象期間の企業一覧")
-    for c in sorted(df_filtered["company"].unique()):
-        st.markdown(
-            f"<span style='background:#E8F0FE; padding:4px 8px; border-radius:8px; margin:4px; display:inline-block;'>{c}</span>",
-            unsafe_allow_html=True
-        )
-    st.download_button(
-        label="検索結果をCSVでダウンロード",
-        data=csv_bytes,
-        file_name="harvest_search_result.csv",
-        mime="text/csv",
-    )
+st.download_button(
+    label="検索結果をCSVでダウンロード",
+    data=csv_bytes,
+    file_name="harvest_search_result.csv",
+    mime="text/csv",
+)
 
 st.write("ここに収量データなどの検索・一覧画面を実装していきます。")
 
 # ページネーション（25件ずつ）
 page_size = 25
-max_page = (len(filtered) - 1) // page_size + 1
+max_page = max(1, (len(filtered) + page_size - 1) // page_size)
 
-col1, col2 = st.columns([1, 3])
+if "page" not in st.session_state:
+    st.session_state.page = 1
 
-with col1:
-    page = st.number_input(
-        "ページ番号",
-        min_value=1,
-        max_value=max_page,
-        value=1,
-        step=1,
-        format="%d",
-    )
+col_prev, col_mid, col_next = st.columns([1, 2, 1])
 
-start = (page - 1) * page_size
+with col_prev:
+    if st.button("←　前") and st.session_state.page > 1:
+        st.session_state.page -= 1
+
+with col_mid:
+    st.write(f"ページ{st.session_state.page} / {max_page}")
+
+with col_next:
+    if st.button("次　→") and st.session_state.page < max_page:
+        st.session_state.page += 1
+
+start = (st.session_state.page - 1) * page_size
 end = start + page_size
 
-st.write(f"表示中: {start + 1} ~ {min(end, len(filtered))} 行 / 全 {len(filtered)} 行")
-
-st.dataframe(filtered.iloc[start:end], width="stretch")
-
-
-col_prev, col_next = st.columns(2)
-with col_prev:
-    if st.button("<- 前のページ") and page > 1:
-        page -= 1
-with col_next:
-    if st.button("次のページ->") and page < max_page:
-        page += 1
+st.dataframe(
+        filtered.sort_values(["harvest_date", "company", "crop"]).iloc[start:end],
+        use_container_width=True,)

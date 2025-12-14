@@ -1,10 +1,20 @@
 from pathlib import Path
-import pandas as pd
-from sqlalchemy import create_engine, text
+import sys
 
 # === DB 接続設定(env_raw と同じ DB を想定) ===
-DB_PATH = Path(__file__).resolve().parents[1] / "data" / "db" / "harvests_real.db"
-engine = create_engine(f"sqlite:///{DB_PATH}", future=True)
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+# app を import
+from app.core.db import get_engine, DB_PATH
+
+import pandas as pd
+from sqlalchemy import text
+
+engine = get_engine()
+
+inbox_dir = BASE_DIR / "data" / "inbox" / "harvest"
 
 # ------------------------------------------------------------
 # テーブル作成
@@ -15,32 +25,52 @@ def ensure_raw_csv_table() -> None:
     すでに存在していれば何もしない（既存スキーマを壊さない）。
     """
     ddl = """
-    CREATE TABLE IF NOT EXISTS raw_csv (
-        c1 TEXT, --収穫日
-        c2 TEXT, --企業名
-        c3 TEXT, --収穫野菜名
-        c4 REAL  --収穫量(g)
+    CREATE TABLE IF NOT EXISTS harvest_fact (
+        id           INTEGER PRIMAY KEY,
+        harvest_date TEXT NOT NULL,
+        company      TEXT NOT NULL,
+        crop         TEXT NOT NULL,
+        amount_kg    TEXT NOT NULL
     );
     """
     with engine.begin() as conn:
         conn.exec_driver_sql(ddl)
 
+def upsert_raw_to_harvest_fact() -> int:
+    """
+    raw_csvからharvest_factへ変換投入する。
+    すでに同一(harvest_date, compnay, crop, amount_kg)があるものは入れない。
+    戻り値: 追加件数
+    """
+    ensure_raw_csv_table()
 
-def ensure_harvest_import_log_table() -> None:
-    """
-    どの収穫CSVファイルを取り込んだかを記録するログテーブル。
-    同じ path の重複取り込みを防ぐ。
-    """
-    ddl = """
-    CREATE TABLE IF NOT EXISTS harvest_import_log (
-      id             INTEGER PRIMARY KEY,
-      path           TEXT NOT NULL UNIQUE, -- ファイルの絶対パス
-      imported_at    TEXT NOT NULL         -- 取り込み日時（SQLite の datetime('now')）
-    );
+    sql = """
+    INSERT INTO harvest_fact (harvest_date, company, crop, amount_kg)
+    SELECT
+      -- 日付を YYYY-MM-DD に寄せる(SQLiteのdate())
+      date(c1) as harvest_date,
+      trim(c2) as company,
+      trim(c3) as crop,
+      CAST(c4 as REAL) / 1000.0 as amount_kg
+    FROM raw_csv r
+    WHERE
+      date(c1) IS NOT NULL
+      AND c2 IS NOT NULL
+      AND c3 IS NOT NULL
+      AND c4 IS NOT NULL
+      AND NOT EXISTS(
+        SELECT 1 FROM harvest_fact f
+        WHERE
+          f.harvest_date = date(r.c1)
+          AND f.company = trim(r.c2)
+          AND f.crop = trim(r.c3)
+          AND f.amount_kg = CAST(r.c4 as REAL) / 1000.0
+      );
     """
     with engine.begin() as conn:
-        conn.exec_driver_sql(ddl)
-
+        res = conn.execute(text(sql))
+        #SQLiteはrowcountが取れることが多い(取れない場合は-1)
+        return res.rowcount if res.rowcount is not None else -1
 
 # ------------------------------------------------------------
 # インポート済み判定 ＆ ログ記録
@@ -178,15 +208,15 @@ def import_harvest_csv(path: str) -> None:
 # メイン処理: inbox/harvest 配下の *.csv を一括取り込み
 # ------------------------------------------------------------
 if __name__ == "__main__":
-    inbox_dir = Path("/home/matsuoka/work-automation/heartful-analytics/data/inbox/harvest")
-
     if not inbox_dir.exists():
         raise FileNotFoundError(f"inbox/harvest ディレクトリがありません: {inbox_dir}")
+added = upsert_raw_to_harvest_fact()
+print(f"[OK] harvest_fact へ追加: {added}行")
 
-    targets = sorted(inbox_dir.glob("*.csv"))
+targets = sorted(inbox_dir.glob("*.csv"))
 
-    if not targets:
-        raise FileNotFoundError(f"{inbox_dir} に収穫CSVが見つかりません。")
+if not targets:
+    raise FileNotFoundError(f"{inbox_dir} に収穫CSVが見つかりません。")
 
     print(f"{len(targets)} ファイルを処理します。")
 
