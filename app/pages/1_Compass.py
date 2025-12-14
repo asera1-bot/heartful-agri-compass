@@ -45,8 +45,10 @@ if df.empty:
 
 # 日付をdatetimeに変換
 df["harvest_date"] = pd.to_datetime(df["harvest_date"], errors="coerce")
+df = df.dropna(subset=["harvest_date"])
 df["amount_kg"] = pd.to_numeric(df["amount_kg"], errors="coerce")
 df = df.dropna(subset=["amount_kg", "amount_kg", "company", "crop"]).copy()
+df = df[df["harvest_date"] >= pd.Timestamp("2020-01-01")]
 
 # 表示・フィルタ用（日付だけ）
 df["harvest_day"] = df["harvest_date"].dt.date
@@ -162,7 +164,7 @@ df_company = (
     .sum()
     .sort_values("amount_kg", ascending=False)
 )
-st.dataframe(df_company.head(5), use_container_width=True)
+st.dataframe(df_company.head(5), width="stretch")
 
 st.subheader("作物別収量ランキング(Top5)")
 df_crop = (
@@ -170,7 +172,7 @@ df_crop = (
     .sum()
     .sort_values("amount_kg", ascending=False)
 )
-st.dataframe(df_crop.head(5), use_container_width=True)
+st.dataframe(df_crop.head(5), width="stretch")
 
 # グラフ
 st.subheader("日別収量の推移")

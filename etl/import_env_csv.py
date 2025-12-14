@@ -1,20 +1,20 @@
 from pathlib import Path
 import sys
 import re
-
 import pandas as pd
 import numpy as np
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 
 # ここでプロジェクトルートを import パスに追加
 BASE_DIR = Path(__file__).resolve().parents[1]
-DB_PATH = BASE_DIR / "db" / "heartful_dev.db"
-inbox_dir = BASE_DIR / "data" / "inbox" / "env"
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from app.core.db import get_engine, DB_PATH
+from app.core.db import get_engine
 engine = get_engine()
+
+DB_PATH = BASE_DIR / "db" / "heartful_dev.db"
+inbox_dir = BASE_DIR / "data" / "inbox" / "env"
 
 # ========= テーブル保証系 =========
 def ensure_env_raw_table() -> None:
