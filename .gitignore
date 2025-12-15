@@ -1,4 +1,13 @@
+# Virtualenv
+venv/
 .venv/
+
+# Python cache
 __pycache__/
-*.db
-db/
+*.pyc
+
+# Local DB
+db/*.db
+*.sqlite
+*.sqlite3
+
