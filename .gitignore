@@ -1,15 +1,17 @@
+ndows ADS (Zone.Identifier)
+*:Zone.Identifier
+
 # Virtualenv
 venv/
 .venv/
 
-# Python cache
+# Local DB
+db/
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache
 __pycache__/
 *.pyc
 
-# Local DB
-db/
-db/*.db
-*.sqlite
-*.sqlite3
-# windowsjunk
-*:Zone.Identifier

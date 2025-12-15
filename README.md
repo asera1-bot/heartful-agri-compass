@@ -15,5 +15,9 @@
 ```bash
 cd heartful-agri-compass
 python3 -m venv venv
-./venv/bin/python -m pip install -r requirements.txt
+source venv/bin/activate
+pip install -r requirements.txt
+
+./venv/bin/python etl/import_harvest_csv.py
+./venv/bin/python -m streamlit run app/main.py
 
