@@ -16,7 +16,7 @@ TEMPLATE = pd.DataFrame({
 })
 
 with st.expander("CSVテンプレートを確認"):
-    st.dataframe(TEMPLATE, use_container_width=True)
+    st.dataframe(TEMPLATE, width="stretch")
 
 file = st.file_uploader("ＣＳＶファイルを選択（UTF-8, ヘッダ: farm, month, total_kg)", type=["csv"])
 if not file:
@@ -38,11 +38,11 @@ df["total_kg"] = pd.to_numeric(df["total_kg"], errors="coerce")
 bad = df[df["month"].isna() | df["total_kg"].isna() | (df["farm"] == "")]
 if not bad.empty:
     st.warning("不正行があるため取り込めません。該当行を確認してください。")
-    st.dataframe(bad, use_container_width=True)
+    st.dataframe(bad, width="stretch")
     st.stop()
 
 st.subheader("取り込みプレビュー")
-st.dataframe(df, use_container_width=True)
+st.dataframe(df, width="stretch")
 
 if st.button("取り込む(UPSERT) ", type="primary"):
     rows = df.to_dict(orient="records")

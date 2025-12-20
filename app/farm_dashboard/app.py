@@ -57,7 +57,7 @@ def main():
             else:
             fig = px.bar(df, x="month", y="total_kg", color="farm", barmode="group", text="total_kg",
                          title=f"月別　ｘ　圃場合計（{source.upprr()})")
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
 if __name__ == "__main__"
     main()

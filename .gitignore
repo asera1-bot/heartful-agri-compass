@@ -1,4 +1,19 @@
+ndows ADS (Zone.Identifier)
+*:Zone.Identifier
+
+# Virtualenv
+venv/
 .venv/
-__pycache__/
-*.db
+
+# Local DB
 db/
+*.db
+
+db/
+*.sqlite
+*.sqlite3
+
+# Cache
+__pycache__/
+*.pyc
+
