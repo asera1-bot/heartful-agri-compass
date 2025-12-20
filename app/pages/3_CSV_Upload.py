@@ -1,6 +1,7 @@
 import io
 import re
 from datetime import datetime, timedelta
+from etl.import_harvest_csv import upsert_raw_to_harvest_fact
 
 import pandas as pd
 import streamlit as st
@@ -98,10 +99,22 @@ def ensure_harvest_fact_table():
     with engine.begin() as conn:
         conn.exec_driver_sql(ddl)
 
-def normalize_amount_for_compare(x: float) -> float:
-    # 重複判定の安定化（浮動小数の誤差対策）
-    # 0.1 と 0.1000000003 を同一扱いにする
-    return float(round(x, 3))
+def normalize_amount_for_compare(x):
+    """
+    重複判定用: amount_kg を少数3桁に丸めて比較する
+    - DBから文字列で来てもOK
+    ‐ None/Nanは None を返す
+    """
+    if x is None:
+        return None
+    try:
+        # 文字列→数値へ("1.23"　等もOK)
+        v = float(x)
+    except (TypeError, ValueError):
+        return None
+    return round(v, 3)
+
+
 
 # ---------- upload ----------
 uploaded = st.file_uploader("収量CSVのファイルを選択してください", type=["csv"])
@@ -145,9 +158,9 @@ if not required_any.issubset(df.columns):
 
 # amount_kg を作る
 if "amount_kg" in df.columns:
-    df["amount_kg"] = df["amount_kg"].apply(parse_amount_to_kg)
+    df["amount_kg"] = df["amount_kg"].apply(normalize_amount_for_compare)
 elif "amount_g" in df.columns:
-    df["amount_kg"] = df["amount_g"].apply(parse_amount_to_kg)
+    df["amount_kg"] = df["amount_g"].apply(normalize_amount_for_compare)
 else:
     st.error("収量列が見つかりません（amount_g / amount_kg 相当が必要）。")
     st.stop()
@@ -192,18 +205,18 @@ st.info(
 
 if not future_rows.empty:
     with st.expander("除外された未来日の行（先頭10件）"):
-        st.dataframe(future_rows.head(10), use_container_width=True)
+        st.dataframe(future_rows.head(10), width="stretch")
 
 if not neg_rows.empty:
     with st.expander("除外されたマイナス収量の行（先頭10件）"):
-        st.dataframe(neg_rows.head(10), use_container_width=True)
+        st.dataframe(neg_rows.head(10), width="stretch")
 
 if df.empty:
     st.error("有効なレコードがありません。CSVの内容を確認してください。")
     st.stop()
 
 st.markdown("### プレビュー（クレンジング後）")
-st.dataframe(df.head(20), use_container_width=True)
+st.dataframe(df.head(20), width="stretch")
 
 # ---------- duplicate check ----------
 ensure_harvest_fact_table()
@@ -220,7 +233,8 @@ with st.spinner("DB 既存データとの重複をチェック中..."):
                 conn,
             )
             # 既存側も丸めて比較の軸を揃える（浮動小数誤差対策）
-            existing["amount_kg"] = existing["amount_kg"].apply(lambda x: normalize_amount_for_compare(x))
+            existing["amount_kg"] = existing["amount_kg"].apply(normalize_amount_for_compare)
+            existing = existing.dropna(subset=["amount_kg"])
     except SQLAlchemyError:
         existing = pd.DataFrame(columns=merge_cols)
 
@@ -238,27 +252,46 @@ st.write(f"既存と重複: **{len(df_dup)} 件**")
 
 if len(df_dup) > 0:
     st.warning("以下は DB に既に存在し、今回のアップロードでは追加されません（先頭10件）。")
-    st.dataframe(df_dup.head(10), use_container_width=True)
+    st.dataframe(df_dup.head(10), width="stretch")
 
 if len(df_new) == 0:
     st.info("追加できる新規データがありません。")
     st.stop()
 
 st.markdown("### 🔵 新規データ（登録予定）")
-st.dataframe(df_new.head(20), use_container_width=True)
+st.dataframe(df_new.head(20), width="stretch")
 
 # ---------- insert ----------
 if st.button("この内容で harvest_fact に登録する", type="primary"):
-    with st.spinner("DBに登録中..."):
+    with st.spinner("DBに登録中…"):
         try:
+            df_raw = df_new.rename(columns={
+                "harvest_date": "c1",
+                "company": "c2",
+                "crop": "c3",
+                "amount_kg": "c4",
+            }).copy()
+
+            df_raw["source_file"] = "csv_upload"
+
             with engine.begin() as conn:
-                df_new.to_sql("harvest_fact", conn, if_exists="append", index=False)
+                df_raw.to_sql(
+                    "raw_csv",
+                    conn,
+                    if_exists="append",
+                    index=False
+                )
+
+                inserted = upsert_raw_to_harvest_fact()
+
+                st.success(
+                    f"harvest_factへ反映されました。"
+                    f"（新規候補={len(df_new)}行 / 実際に反映={inserted}行)"
+                )
         except SQLAlchemyError as e:
             st.error("データベースへの登録に失敗しました。")
             st.code(str(DB_PATH), language="bash")
             st.exception(e)
             st.stop()
 
-    st.success(f"harvest_fact に **{len(df_new)} 行** を追加しました。")
     st.info("SearchList / Compass を再読み込みすると反映されます。")
-

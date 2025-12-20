@@ -38,6 +38,7 @@ def load_harvest_df() -> pd.DataFrame:
     df["crop"] = df["crop"].astype(str).str.strip()
 
     df = df.dropna(subset=["harvest_date", "amount_kg", "company", "crop"])
+    df = df[df["harvest_date"] >= pd.Timestamp("2024-01-01")]
     df = df[(df["company"] != "") & (df["crop"] != "")]
     return df
 
@@ -54,22 +55,31 @@ if df.empty:
     st.warning("harvest_fact にデータがありません。CSVアップロード/ETLで登録してください。")
     st.stop()
 
+from datetime import date
+
 # 画面用（日付だけ）
 df["harvest_day"] = df["harvest_date"].dt.date
 
-min_date = df["harvest_day"].min()
-max_date = df["harvest_day"].max()
-st.caption(f"DBデータ範囲: {min_date} ~ {max_date}")
+df_min = df["harvest_day"].min()
+df_max = df["harvest_day"].max()
+st.caption(f"DBデータ範囲: {df_min} ~ {df_max}")
 
 # --------------------
 # Period Filter
 # --------------------
 st.subheader("期間フィルタ")
+
+DEFAULT_START = date(2024,1,1)
+DEFAULT_END = df_max
+
+default_start = max(DEFAULT_START, df_min)
+default_end = min(DEFAULT_END, df_max)
+
 date_start, date_end = st.date_input(
     "対象期間",
-    value=(min_date, max_date),
-    min_value=min_date,
-    max_value=max_date,
+    value=(default_start, default_end),
+    min_value=df_min,
+    max_value=df_max,
 )
 
 if date_start > date_end:
@@ -80,6 +90,7 @@ df_period = df[(df["harvest_day"] >= date_start) & (df["harvest_day"] <= date_en
 if df_period.empty:
     st.info("この期間にはデータがありません。別の期間を選んでください。")
     st.stop()
+
 
 # --------------------
 # Company/Crop Filter (options are limited to period)

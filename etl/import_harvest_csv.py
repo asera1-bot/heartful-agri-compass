@@ -183,6 +183,7 @@ def detect_columns(df: pd.DataFrame):
         return None
     return col_date, col_company, col_crop, col_amount
 
+
 # --------------------
 # Import
 # --------------------
@@ -240,6 +241,11 @@ def upsert_raw_to_harvest_fact() -> int:
 
     before = len(df)
     df = df.dropna(subset=["harvest_date", "company", "crop", "amount_kg"])
+
+    df = df.drop_duplicates(
+        subset=["harvest_date", "company", "crop", "amount_kg"]
+    )
+
     dropped = before - len(df)
     if dropped:
         print(f"[WARN] dropped rows: {dropped}")

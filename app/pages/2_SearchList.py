@@ -35,6 +35,8 @@ def load_harvest_df() -> pd.DataFrame:
     # harvest_date は TEXT(YYYY-MM-DD) 想定。念のため変換
     df["harvest_date"] = pd.to_datetime(df["harvest_date"], errors="coerce")
     df = df.dropna(subset=["harvest_date"])
+
+    df = df[df["harvest_date"] >= pd.Timestamp("2024-01-01")]
     return df
 
 
@@ -51,33 +53,60 @@ if df.empty:
     st.warning("収量データがありません。CSVアップロード/ETLでデータを登録してください。")
     st.stop()
 
+from datetime import date
+
 # --------------------
 # Filter UI
 # --------------------
 st.subheader("検索条件")
 
-min_date = df["harvest_date"].min().date()
-max_date = df["harvest_date"].max().date()
+df["harvest_date"] = pd.to_datetime(df["harvest_date"], errors="coerce")
+df["harvest_date"] = df["harvest_date"].dt.date
+
+df_min = df["harvest_date"].min()
+df_max = df["harvest_date"].max()
+
+st.caption(f"DBデータ範囲: {df_min} ~ {df_max}")
+
+DEFAULT_START = date(2024, 1, 1)
+DEFAULT_END = df_max
+
+default_start = max(DEFAULT_START, df_min)
+default_end = min(DEFAULT_END, df_max)
 
 date_start, date_end = st.date_input(
     "対象期間",
-    value=(min_date, max_date),
-    min_value=min_date,
-    max_value=max_date,
+    value=(default_start, default_end),
+    min_value=df_min,
+    max_value=df_max,
 )
 
+if date_start > date_end:
+    st.error("開始日が終了日より後になっています。")
+    st.stop()
+
+# --------------------
+# Company / Crop filters
+# --------------------
 all_companies = sorted(df["company"].dropna().unique().tolist())
-company_filter = st.multiselect("企業（未選択なら全件）", options=all_companies, default=[])
+company_filter = st.multiselect(
+    "企業（未選択なら全件）",
+    options=all_companies,
+    default=[]
+)
 
 all_crops = sorted(df["crop"].dropna().unique().tolist())
-crop_filter = st.multiselect("作物（未選択なら全件）", options=all_crops, default=[])
-
+crop_filter = st.multiselect(
+    "作物（未選択なら全件)",
+    options=all_crops,
+    default=[]
+)
 # --------------------
 # Apply filters
 # --------------------
 filtered = df[
-    (df["harvest_date"].dt.date >= date_start)
-    & (df["harvest_date"].dt.date <= date_end)
+    (df["harvest_date"] >= date_start)
+    & (df["harvest_date"] <= date_end)
 ].copy()
 
 if company_filter:
@@ -88,7 +117,7 @@ if crop_filter:
 
 hit_count = len(filtered)
 
-st.markdown("### 🔍 検索結果")
+st.markdown("### 検索結果")
 st.subheader(f"検索結果: {hit_count} 行")
 
 if hit_count == 0:
