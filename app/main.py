@@ -1,3 +1,12 @@
+import os
+st.write("CWD:", os.getcwd())
+st.write("__file__:", __file__)
+st.write("sys.path[0:5]:", sys.path[5])
+st.write("APP_DIR:", str(APP_DIR))
+st.write("APP_DIR exists:", APP_DIR.exists())
+st.write("core dir exists:", (APP_DIR / "core").exists())
+st.write("auth exists:", (APP_DIR / "core" / "auth.py").exists())
+
 import sys
 from pathlib import Path
 import streamlit as st
@@ -20,7 +29,7 @@ boot()
 st.title("Heartful Agri Compass")
 
 if is_logged_in():
-    st.success(f"ログイン中: {st.sessoin_state.get('username')}")
+    st.success(f"ログイン中:{st.session_state.get('username')}")
     st.write("左のページから Compass / Search / CSV Upload を開けます。")
     logout_button()
 else:
