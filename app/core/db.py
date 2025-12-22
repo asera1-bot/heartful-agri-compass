@@ -35,7 +35,7 @@ def get_engine():
 def init_db():
     engine = get_engine()
     with engine.begin() as conn:
-        conn.execute("""
+        conn.exec_driver_sql("""
         CREATE TABLE IF NOT EXISTS harvest_fact(
             harvest_date TEXT NOT NULL,
             company TEXT NOT NULL,
