@@ -18,6 +18,15 @@ engine = get_engine()
 INBOX_DIR = BASE_DIR / "data" / "inbox" / "harvest"
 EXCEL_EPOCH = datetime(1899, 12, 30)
 
+df = df.dropna(subset=["harvest_date", "company", "crop", "amount_kg"])
+
+rows = [
+    r for r in df[[
+        "harvest_date", "company", "crop", "amount_kg", "source_file"
+    ]].to_dict("records")
+    if r.get("harvest_date") is not None
+]
+
 # --------------------
 # Schema
 # --------------------

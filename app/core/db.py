@@ -31,3 +31,17 @@ def get_engine():
         )
 
     return _engine
+
+def init_db():
+    engine = get_engine()
+    with engine.begin() as conn:
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS harvest_fact(
+            harvest_date TEXT NOT NULL,
+            company TEXT NOT NULL,
+            crop TEXT NOT NULL,
+            amount_kg REAL NOT NULL,
+            source_file TEXT,
+            UNIQUE(hravest_date, company, crop, amount_kg)
+        )
+        """)
