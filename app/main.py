@@ -1,4 +1,12 @@
+import sys
 import os
+from pathlib import Path
+import streamlit as st
+
+APP_DIR = Path(__file__).resolve().parent
+if str(APP_DIR) not in sys.path:
+    sys.path.insert(0, str(APP_DIR))
+
 st.write("CWD:", os.getcwd())
 st.write("__file__:", __file__)
 st.write("sys.path[0:5]:", sys.path[5])
@@ -6,14 +14,6 @@ st.write("APP_DIR:", str(APP_DIR))
 st.write("APP_DIR exists:", APP_DIR.exists())
 st.write("core dir exists:", (APP_DIR / "core").exists())
 st.write("auth exists:", (APP_DIR / "core" / "auth.py").exists())
-
-import sys
-from pathlib import Path
-import streamlit as st
-
-APP_DIR = Path(__file__).resolve().parent
-if str(APP_DIR) not in sys.path:
-    sys.path.insert(0, str(APP_DIR))
 
 from core.auth import login_form, is_logged_in, logout_button
 from core.db import init_db
