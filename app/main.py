@@ -1,5 +1,5 @@
 import sys
-from pathlub import Path
+from pathlib import Path
 import streamlit as st
 
 APP_DIR = Path(__file__).resolve().parent
