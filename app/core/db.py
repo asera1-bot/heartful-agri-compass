@@ -1,5 +1,5 @@
 from pathlib import Path
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from app.common.constants import DB_PATH
 
 # /home/matsuoka/work-automation/heartful-agri-compassを指すはず
@@ -16,33 +16,23 @@ _engine = None
 
 def get_engine():
     """アプリ全体で共通して使う SQLite Engine を返す。"""
-    global _engine
-
-    if _engine is None:
-        # デバック用ログ（必要なければ後で消してOK)
-        print(f"[DB DEBUG] DB_PATH = {DB_PATH} (exists={DB_PATH.exists()}")
-
-        # ファイルが無ければ空のファイルだけ作成（SQLite側でテーブル作成）
-        if not DB_PATH.exists():
-            DB_PATH.touch()
-
-        _engine = create_engine(
-            f"sqlite:///{DB_PATH}",
-            future=True,
-        )
-
-    return _engine
+    return create_engine(f"sqlite:///{str(DB_PATH)}", future=True)
 
 def init_db():
     engine = get_engine()
     with engine.begin() as conn:
         conn.exec_driver_sql("""
-        CREATE TABLE IF NOT EXISTS harvest_fact(
+        CREATE TABLE IF EXISTS harvest_fact (
             harvest_date TEXT NOT NULL,
             company TEXT NOT NULL,
             crop TEXT NOT NULL,
-            amount_kg REAL NOT NULL,
+            amount_kg TEXT NOT NULL,
             source_file TEXT,
-            UNIQUE(hravest_date, company, crop, amount_kg)
-        )
+            UNIQUE(harvest_date, company, crop, amount_kg)
+        ):
+        """)
+        conn.exec_driver_sql("""
+        CREATE TEBLE IF NOT EXISTS raw_csv (
+            c1 TEXT, c2 TEXT, c3 TEXT, c4 REAL, source_file TEXT
+        );
         """)

@@ -1,3 +1,12 @@
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+DB_DIR = ROOT_DIR / "db"
+DB_DIR.mkdir(parents=True, exist_ok=True)
+
+DB_PATH = DB_DIR / "heartful_dev.db"
+
+
 # ブランド系farm
 FARM_BRAND_AIKAWA_FRUIT_ICHIGO      = "Aikawa-FRUIT-Ichigo"
 FARM_BRAND_AIKAWA_FRUIT_MINITOMATO  = "Aikawa-FRUIT-MiniTomato"
