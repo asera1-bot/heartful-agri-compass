@@ -2,6 +2,8 @@ from __future__ import annotations
 import streamlit as st
 from streamlit_cookies_manager import EncryptedCoolieManager
 
+print("auth.py loaded")
+
 VALID_USERS = {
     "admin": "password123",
     "teppei": "heartful2025",
