@@ -7,8 +7,8 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 import streamlit as st
-from core.auth import login_form, is_logged_in, logout_button
-from core.db import init_db
+from app.core.auth import login_form, is_logged_in, logout_button
+from app.core.db import init_db
 
 init_db()
 

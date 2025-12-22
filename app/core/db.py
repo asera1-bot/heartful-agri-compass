@@ -1,5 +1,6 @@
 from pathlib import Path
 from sqlalchemy import create_engine
+from app.common.constants import DB_PATH
 
 # /home/matsuoka/work-automation/heartful-agri-compassを指すはず
 ROOT_DIR = Path(__file__).resolve().parents[2]
