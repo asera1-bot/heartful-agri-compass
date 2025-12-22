@@ -10,9 +10,14 @@ import streamlit as st
 from app.core.auth import login_form, is_logged_in, logout_button
 from app.core.db import init_db
 
-init_db()
-
 st.set_page_config(page_title="Heartful Agri Compass", layout="wide")
+
+@st.cache_resource
+def boot():
+    init_db()
+    return True
+
+boot()
 
 def main():
     st.title("Heartful Agri Compass")
@@ -24,6 +29,5 @@ def main():
         st.info("ログインしてください。")
         login_form()
 
-if __name__ == "__main__":
     main()
 
