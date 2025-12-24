@@ -8,16 +8,23 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.auth import require_login
 from app.core.db import get_engine, DB_PATH
 
+from app.common.constans import DB_PATH
+import os
+st.caption(f"DB_PATH={DB_PATH} exists={os.path.exists(DB_PATH)}")
+
 require_login()
 
+st.set_page_config(page_title="Compass", layout="wide")
 st.title("Compass")
 st.caption("収量の全体傾向をざっくりつかむダッシュボード")
 
 try:
-        df = load_harvest_df()
+    df = load_harvest_df()
 except Exception:
-        st.info("まず CSV Upload でデータを登録してください。")
-            st.stop()
+    st.info("まず CSV Upload でデータを登録してください。")
+    st.stop()
+
+st.dataframe(df)
 
 # --------------------
 # DB Load

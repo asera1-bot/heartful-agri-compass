@@ -9,6 +9,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.auth import require_login
 from app.core.db import get_engine, DB_PATH
 
+from app.common.constants import DB_PATH
+import os
+st.caption(f"DB_PATH={DB_PATH} exists={os.path.exists(DB_PATH)}")
+
 require_login()
 
 st.markdown("### CSV アップロード")
@@ -261,7 +265,6 @@ if st.button("この内容で harvest_fact に登録する", type="primary"):
 
     st.success(f"harvest_fact に **{len(df_new)} 行** を追加しました。")
     st.info("SearchList / Compass を再読み込みすると反映されます。")
-    st.cache_data.clear()
-    st.cache_resource.clear()
+    st.session_state["data_version"] = st.session_get("data_version", 0) + 1
     st.rerun()
 
