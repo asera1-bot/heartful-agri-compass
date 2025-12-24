@@ -1,5 +1,5 @@
 import streamlit as st
-from app.core.auth import login_form, is_logged_in, logout_button
+from core.auth import login_form, is_logged_in, logout_button
 
 st.set_page_config(page_title="Heartful Agri Compass", layout="wide")
 

@@ -6,8 +6,8 @@ import pandas as pd
 import streamlit as st
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.core.auth import require_login
-from app.core.db import get_engine, DB_PATH
+from core.auth import require_login
+from core.db import get_engine, DB_PATH
 
 require_login()
 

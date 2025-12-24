@@ -1,6 +1,7 @@
 # app/core/db.py
 from pathlib import Path
 from sqlalchemy import create_engine
+from common.constants import DB_PATH
 
 # DB パス（相対・Cloud対応）
 DB_PATH = Path(__file__).resolve().parents[2] / "db" / "heartful_dev.db"
