@@ -4,7 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.auth import require_login
-from core.db import get_engine, DB_PATH
+from app.core.db import get_engine, DB_PATH
 
 require_login()
 
