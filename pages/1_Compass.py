@@ -10,14 +10,15 @@ from app.core.db import get_engine, DB_PATH
 
 require_login()
 
+try:
+        df = load_harvest_df()
+except Exception:
+        st.info("まだデータがありません。CSV Upload から登録してください。")
+            st.stop()
+
+
 st.title("Compass")
 st.caption("収量の全体傾向をざっくりつかむダッシュボード")
-
-try:
-    df = load_harvest_df()
-except Exception:
-    st.info("まだデータがありません。CSV Upload から登録してください。")
-    st.stop()
 
 # --------------------
 # DB Load

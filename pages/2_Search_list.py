@@ -8,14 +8,15 @@ from app.core.db import get_engine, DB_PATH
 
 require_login()
 
+try:
+        df = load_harvest_df()
+except Exception:
+        st.info("まだデータがありません。CSV Upload から登録してください。")
+            st.stop()
+
+
 st.title("Search / List")
 st.caption("収量データを条件で検索し、一覧表示・CSVダウンロードします。")
-
-try:
-    df = load_harvest_df()
-except Exception:
-    st.info("まだデータはありません。CSV Upload から登録してください。")
-    st.stop()
 
 # --------------------
 # DB Load
