@@ -11,9 +11,6 @@ def get_engine():
         _engine = create_engine(f"sqlite:///{str(DB_PATH)}", future=True)
         return _engine
 
-def init_db() -> None:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-
 ddl_harvest_fact = """
 CREATE TABLE IF NOT EXISTS harvest_fact (
     harvest_date TEXT NOT NULL,

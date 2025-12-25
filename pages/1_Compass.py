@@ -8,10 +8,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.auth import require_login
 from app.core.db import get_engine, DB_PATH
 
-from app.common.constans import DB_PATH
-import os
-st.caption(f"DB_PATH={DB_PATH} exists={os.path.exists(DB_PATH)}")
-
 require_login()
 
 st.set_page_config(page_title="Compass", layout="wide")
@@ -29,20 +25,15 @@ st.dataframe(df)
 # --------------------
 # DB Load
 # --------------------
-@st.cache_data(ttl=60)
-def load_harvest_df() -> pd.DataFrame:
-    sql = text("""
-        SELECT
-            harvest_date,
-            company,
-            crop,
-            amount_kg
-        FROM harvest_fact
-        ORDER BY harvest_date, company, crop
-    """)
+@st.cache_data
+def load_harvest_df(db_mtime: float) -> pd.DataFrame:
     engine = get_engine()
-    with engine.connect() as conn:
-        df = pd.read_sql_query(sql, conn)
+    sql = "SELECT harvest_date, compnay, crop, amount_kg, FROM harvest_fact ORDER BY harvests_date, company, crop"
+    return pd.read_sql_query(sql, engine)
+
+def get_harvest_df():
+    mtime = DB_PATH.start().st_mtime if DB_PATH.exists() else 0.0
+    return load_harvest_df(mtime)
 
     # normalize
     df["harvest_date"] = pd.to_datetime(df["harvest_date"], errors="coerce")

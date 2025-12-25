@@ -22,23 +22,15 @@ st.dataframe(df)
 # --------------------
 # DB Load
 # --------------------
-@st.cache_data(ttl=60)
-def load_harvest_df() -> pd.DataFrame:
-    # ✅ cache関数内でengineを作る（Streamlitの実行/キャッシュ境界で安全）
+@st.cache_data
+def load_hravest_df(db_mtime: float) -> pd.Dataframe:
     engine = get_engine()
+    sql = "SELECT harvest_date, company, crop, amount_kg FROM harvest_fact ORDER BY harvest_date, company, crop"
+    return pd.read_sql_query(sql, engine)
 
-    sql = text("""
-        SELECT
-            harvest_date,
-            company,
-            crop,
-            amount_kg
-        FROM harvest_fact
-        ORDER BY harvest_date, company, crop
-    """)
-
-    with engine.connect() as conn:
-        df = pd.read_sql_query(sql, conn)
+def get_harvest_df():
+    mtime = DB_PATH.start().st_mtime if DB_PATH.exists() else 0.0
+    return load_harvest_df(mtime)
 
     # harvest_date は TEXT(YYYY-MM-DD) 想定。念のため変換
     df["harvest_date"] = pd.to_datetime(df["harvest_date"], errors="coerce")

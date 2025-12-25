@@ -265,6 +265,5 @@ if st.button("この内容で harvest_fact に登録する", type="primary"):
 
     st.success(f"harvest_fact に **{len(df_new)} 行** を追加しました。")
     st.info("SearchList / Compass を再読み込みすると反映されます。")
-    st.session_state["data_version"] = st.session_get("data_version", 0) + 1
     st.rerun()
 
