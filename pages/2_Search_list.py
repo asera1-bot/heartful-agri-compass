@@ -8,6 +8,9 @@ from app.common.constants import DB_PATH
 
 require_login()
 
+import os, streamlit as st
+st.write("RUNNING FILE:", __file__)
+
 st.set_page_config(page_title="Search List", layout="wide")
 st.title("Search / List")
 st.caption("収量データを条件で検索し、一覧表示・CSVダウンロードします。")

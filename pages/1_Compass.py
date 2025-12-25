@@ -8,6 +8,20 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.auth import require_login
 from app.common.constants import DB_PATH
 
+import os
+from app.core.db import get_engine
+
+st.caption(f"Compass DB_PATH = {DB_PATH} exists={os.path.exists(DB_PATH)}")
+
+engine = get_engine()
+try:
+    n = pd.read_sql_query("SELECT COUNT(*) AS n FROM harvest_fact", engine)["n"][0]
+    st.write("harvest_fact rows:", int(n))
+except Exception as e:
+    st.error("Compass DB read failed")
+    st.exception(e)
+    st.stop()
+
 require_login()
 
 st.set_page_config(page_title="Compass", layout="wide")

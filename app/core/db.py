@@ -6,10 +6,10 @@ from app.common.constants import DB_PATH
 _engine = None
 
 def get_engine():
-    global _engine
-    if _engine is None:
-        _engine = create_engine(f"sqlite:///{str(DB_PATH)}", future=True)
-        return _engine
+    return create_engine(f"sqlite:///{DB_PATH}", future=True)
+
+def init_db():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 ddl_harvest_fact = """
 CREATE TABLE IF NOT EXISTS harvest_fact (

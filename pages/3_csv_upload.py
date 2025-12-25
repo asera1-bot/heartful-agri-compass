@@ -14,6 +14,8 @@ engine = get_engine()
 cnt = pd.read_sql_query("SELECT COUNT(*) AS n FROM harvest_fact", engine)["n"][0]
 st.write("DB harvest_fact 件数:", int(cnt))
 
+st.write("RUNNING FILE:", __file__)
+
 st.caption(f"DB_PATH={DB_PATH} exists={os.path.exists(DB_PATH)}")
 
 require_login()
