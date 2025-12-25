@@ -16,9 +16,6 @@ if is_logged_in():
     # ログアウトはサイドバーに固定
     with st.sidebar:
         logout_button()
-
-    st.caption(f"harvest_fact 件数: {n}")
-
     if n == 0:
         st.info("まず CSV Upload でデータを登録してください。")
         st.write("左のメニューから **csv upload** を開いて登録すると、 Compass / Search List に反映されます。")
