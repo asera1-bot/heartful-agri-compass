@@ -4,11 +4,11 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.auth import require_login
-from app.core.db import get_engine, DB_PATH
+from app.common.constants import DB_PATH
 
 require_login()
 
-st.set_config(page_title="Search List", layout="wide")
+st.set_page_config(page_title="Search List", layout="wide")
 st.title("Search / List")
 st.caption("収量データを条件で検索し、一覧表示・CSVダウンロードします。")
 

@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.auth import require_login
-from app.core.db import get_engine, DB_PATH
+from app.common.constants import DB_PATH
 
 require_login()
 

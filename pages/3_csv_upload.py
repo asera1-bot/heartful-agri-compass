@@ -7,10 +7,13 @@ import streamlit as st
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.auth import require_login
-from app.core.db import get_engine, DB_PATH
-
 from app.common.constants import DB_PATH
 import os
+
+engine = get_engine()
+cnt = pd.read_sql_query("SELECT COUNT(*) AS n FROM harvest_fact", engine)["n"][0]
+st.write("DB harvest_fact 件数:", int(cnt))
+
 st.caption(f"DB_PATH={DB_PATH} exists={os.path.exists(DB_PATH)}")
 
 require_login()
