@@ -1,30 +1,120 @@
-def norm_col(s: str) -> str:
-    # BOM除去 / 前後空白除去 / 全角スペース除去 / 小文字化（英字）
-    s = str(s).replace("\ufeff", "").replace("　", " ").strip()
-    return s.lower()
+from __future__ import annotations
 
-# 正規化したキーで受ける（表記ゆれ吸収）
+import io
+import os
+import re
+from datetime import datetime, timedelta
+
+import pandas as pd
+import streamlit as st
+from sqlalchemy.exc import SQLAlchemyError
+
+from app.core.auth import require_login
+from app.core.db import get_engine, init_db
+from app.common.constants import DB_PATH
+
+st.set_page_config(page_title="CSV Upload", layout="wide")
+require_login()
+init_db()
+
+st.title("CSV Upload")
+st.caption("収量データCSVをアップロードして harvest_fact に登録します。")
+st.caption(f"DB_PATH={DB_PATH} exists={os.path.exists(DB_PATH)}")
+
+# ---------- helpers ----------
+ZEN_NUM = str.maketrans("０１２３４５６７８９．，", "0123456789.,")
+EXCEL_EPOCH = datetime(1899, 12, 30)
+
+def parse_amount_to_kg(val) -> float | None:
+    if val is None:
+        return None
+    s = str(val).strip()
+    if not s:
+        return None
+    s = s.translate(ZEN_NUM).replace(",", "")
+    s_low = s.lower()
+    m = re.search(r"[-+]?\d*\.?\d+", s_low)
+    if not m:
+        return None
+    x = float(m.group())
+    if "kg" in s_low:
+        return x
+    # g想定
+    return x / 1000.0
+
+def parse_harvest_date(val) -> str | None:
+    if val is None:
+        return None
+    s = str(val).strip()
+    if not s:
+        return None
+
+    # Excelシリアル
+    if s.isdigit():
+        n = int(s)
+        if 30000 <= n <= 60000:
+            return (EXCEL_EPOCH + timedelta(days=n)).date().isoformat()
+
+    for fmt in ("%Y/%m/%d", "%Y-%m-%d", "%Y/%m/%d %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(s, fmt).date().isoformat()
+        except ValueError:
+            pass
+
+    dt = pd.to_datetime(s, errors="coerce")
+    if pd.isna(dt):
+        return None
+    return dt.date().isoformat()
+
+def read_csv_bytes(b: bytes) -> tuple[pd.DataFrame, str]:
+    candidates = [
+        ("utf-8-sig", dict(encoding="utf-8-sig", sep=",")),
+        ("cp932", dict(encoding="cp932", sep=",")),
+        ("cp932_auto", dict(encoding="cp932", sep=None, engine="python")),
+    ]
+    last = []
+    for label, params in candidates:
+        try:
+            buf = io.BytesIO(b)
+            return pd.read_csv(buf, **params), label
+        except Exception as e:
+            last.append(f"{label}: {e}")
+    raise RuntimeError("CSV decode failed:\n" + "\n".join(last))
+
+def ensure_table():
+    ddl = """
+    CREATE TABLE IF NOT EXISTS harvest_fact (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        harvest_date TEXT NOT NULL,
+        company      TEXT NOT NULL,
+        crop         TEXT NOT NULL,
+        amount_kg    REAL NOT NULL
+    );
+    """
+    eng = get_engine()
+    with eng.begin() as conn:
+        conn.exec_driver_sql(ddl)
+
+def norm_col(x: str) -> str:
+    return str(x).replace("\ufeff", "").replace("　", " ").strip().lower()
+
 COL_MAP = {
-    # 日付
     "収穫日": "harvest_date",
     "日付": "harvest_date",
     "harvest_date": "harvest_date",
     "date": "harvest_date",
 
-    # 会社
     "企業名": "company",
     "会社名": "company",
     "企業": "company",
     "会社": "company",
     "company": "company",
 
-    # 作物
     "作物名": "crop",
     "収穫野菜名": "crop",
     "品目": "crop",
     "crop": "crop",
 
-    # 収量
     "収穫量（ｇ）": "amount_g",
     "収穫量(ｇ)": "amount_g",
     "収穫量": "amount_g",
@@ -35,22 +125,67 @@ COL_MAP = {
     "amount_kg": "amount_kg",
 }
 
-# 元の列名 -> 正規化 -> マップ
-rename_dict = {}
+# ---------- UI ----------
+uploaded = st.file_uploader("収量CSVを選択", type=["csv"])
+if uploaded is None:
+    st.info("CSVを選択してください。")
+    st.stop()
+
+raw_df, mode = read_csv_bytes(uploaded.getvalue())
+st.success(f"CSV読み込み成功 (mode={mode})")
+st.write("検出列:", list(raw_df.columns))
+
+# ---------- normalize columns ----------
+rename = {}
 for c in raw_df.columns:
     key = norm_col(c)
-    # COL_MAP は日本語キーが多いので、lower化した日本語でも一致するように一度戻す
-    # ここでは「lower化しても日本語は変化しない」前提でOK
-    mapped = COL_MAP.get(key) or COL_MAP.get(str(c).replace("\ufeff", "").replace("　"," ").strip())
+    mapped = COL_MAP.get(key) or COL_MAP.get(str(c).replace("\ufeff", "").replace("　", " ").strip())
     if mapped:
-        rename_dict[c] = mapped
+        rename[c] = mapped
 
-df = raw_df.rename(columns=rename_dict)
+df = raw_df.rename(columns=rename)
 
 required = {"harvest_date", "company", "crop"}
 if not required.issubset(df.columns):
-    st.error("必須列が不足しています: " + str(required - set(df.columns)))
-    st.write("検出した列:", list(raw_df.columns))
+    st.error(f"必須列が不足しています: {required - set(df.columns)}")
     st.write("正規化後の列:", [norm_col(x) for x in raw_df.columns])
     st.stop()
+
+# amount_kg 作成
+if "amount_kg" in df.columns:
+    df["amount_kg"] = df["amount_kg"].apply(parse_amount_to_kg)
+elif "amount_g" in df.columns:
+    df["amount_kg"] = df["amount_g"].apply(parse_amount_to_kg)
+else:
+    st.error("収量列が見つかりません（amount_g/amount_kg が必要）")
+    st.stop()
+
+df["harvest_date"] = df["harvest_date"].apply(parse_harvest_date)
+df["company"] = df["company"].astype(str).str.strip()
+df["crop"] = df["crop"].astype(str).str.strip()
+
+df = df.dropna(subset=["harvest_date", "company", "crop", "amount_kg"])
+df = df[(df["company"] != "") & (df["crop"] != "")]
+df = df[["harvest_date", "company", "crop", "amount_kg"]].copy()
+
+st.markdown("### プレビュー（登録対象）")
+st.dataframe(df.head(30), use_container_width=True)
+
+if df.empty:
+    st.warning("有効データがありません。CSV内容を確認してください。")
+    st.stop()
+
+ensure_table()
+eng = get_engine()
+
+if st.button("この内容でDBに登録", type="primary"):
+    try:
+        with eng.begin() as conn:
+            df.to_sql("harvest_fact", conn, if_exists="append", index=False)
+        st.success(f"{len(df)} 行 追加しました。")
+        st.info("Compass / SearchList を開き直すと反映されます。")
+        st.rerun()
+    except SQLAlchemyError as e:
+        st.error("DB登録に失敗しました。")
+        st.exception(e)
 
