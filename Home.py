@@ -17,14 +17,6 @@ if is_logged_in():
     with st.sidebar:
         logout_button()
 
-    # DBの現状をここで「見える化」しておくと、Cloud/Local差分の切り分けが一瞬でできる
-    try:
-        n = init_db("harvest_fact")
-    except Exception as e:
-        st.error("DBの状態確認に失敗しました。(接続バス/初期化を確認)")
-        st.exception(e)
-        st.stop()
-
     st.caption(f"harvest_fact 件数: {n}")
 
     if n == 0:
