@@ -191,9 +191,6 @@ if st.button("この内容でDBに登録", type="primary"):
         with eng.begin() as conn:
             result = conn.execute(st.text(sql)), rows)
 
-        with eng.connect() as conn:
-            cnt = pd.read_sql_query("SELECT COUNT(*) AS n FROM harvest_fact", conn)["n"][0]
-            
         st.success("登録処理が完了しました（重複はスキップ）。")
         st.info(f"現在の harvest_fact 件数：{int(cnt)}")
         st.rerun()
