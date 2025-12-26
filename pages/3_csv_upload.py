@@ -183,13 +183,14 @@ if st.button("この内容でDBに登録", type="primary"):
     rows = df.to_dict(orient="records")
 
     sql = """
-    INSERT OR IGNORE INTO harvest_fact (harvest_date, compnay, crop, amount_kg)
+    INSERT OR IGNORE INTO harvest_fact 
+    (harvest_date, company, crop, amount_kg)
     VALUES (:harvest_date, :company, :crop, :amount_kg)
     """
 
     try:
         with eng.begin() as conn:
-            result = conn.execute(st.text(sql)), rows)
+            conn.execute(text(sql), rows)
 
         st.success("登録処理が完了しました（重複はスキップ）。")
         st.info(f"現在の harvest_fact 件数：{int(cnt)}")
