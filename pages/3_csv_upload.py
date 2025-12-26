@@ -18,6 +18,15 @@ st.set_page_config(page_title="CSV Upload", layout="wide")
 require_login()
 init_db()
 
+if st.session_state.get("after_insert_message"):
+    st.info(
+        "CSVの登録が完了しました。\n\n"
+        "🔄️登録内容を確認するには、左メニューから"
+        "Compass または Search List ページを開きなおしてください。 \n"
+        "(Streamlitの仕様上、他ページは自動更新されません。 )"
+    )
+    del st.session_state["after_insert_message"]
+
 st.title("CSV Upload")
 st.caption("収量データCSVをアップロードして harvest_fact に登録します。")
 st.caption(f"DB_PATH={DB_PATH} exists={os.path.exists(DB_PATH)}")
@@ -176,25 +185,47 @@ if df.empty:
     st.warning("有効データがありません。CSV内容を確認してください。")
     st.stop()
 
-ensure_table()
-eng = get_engine()
+result_box = st.container()
 
 if st.button("この内容でDBに登録", type="primary"):
+    ensure_table()
+    eng = get_engine()
+
     rows = df.to_dict(orient="records")
 
     sql = """
-    INSERT OR IGNORE INTO harvest_fact 
+    INSERT OR IGNORE INTO harvest_fact
     (harvest_date, company, crop, amount_kg)
     VALUES (:harvest_date, :company, :crop, :amount_kg)
     """
 
     try:
         with eng.begin() as conn:
+            # 登録前件数
+            before_n = conn.execute(text("SELECT COUNT(*) FROM harvest_fact")).scalar_one()
+
+            # 一括登録（重複は無視）
             conn.execute(text(sql), rows)
 
-        st.success("登録処理が完了しました（重複はスキップ）。")
-        st.rerun()
+            # 登録後件数
+            after_n = conn.execute(text("SELECT COUNT(*) FROM harvest_fact")).scalar_one()
+
+        inserted = after_n - before_n
+        skipped = len(rows) - inserted
+
+        with result_box:
+            st.success(f"登録処理が完了しました。追加: {inserted}件 / スキップ: {skipped}件（重複など）")
+
+            if skipped > 0:
+                st.info("スキップ理由：同一キー（harvest_date, company, crop, amount_kg）が既にDBに存在するためです。")
+
+            st.info(
+                "🔄 登録内容を確認するには、左メニューから **Compass** または **Search / List** ページを開き直してください。\n"
+                "（Streamlitの仕様上、他ページの表示は自動更新されません）"
+            )
 
     except Exception as e:
-        st.error("DB登録に失敗しました。")
-        st.exception(e)
+        with result_box:
+            st.error("DB登録に失敗しました。")
+            st.exception(e)
+
