@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import streamlit as st
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 
 from app.core.auth import require_login
 from app.core.db import get_engine, init_db
@@ -179,13 +180,24 @@ ensure_table()
 eng = get_engine()
 
 if st.button("この内容でDBに登録", type="primary"):
+    rows = df.to_dict(orient="records")
+
+    sql = """
+    INSERT OR IGNORE INTO harvest_fact (harvest_date, compnay, crop, amount_kg)
+    VALUES (:harvest_date, :company, :crop, :amount_kg)
+    """
+
     try:
         with eng.begin() as conn:
-            df.to_sql("harvest_fact", conn, if_exists="append", index=False)
-        st.success(f"{len(df)} 行 追加しました。")
-        st.info("Compass / SearchList を開き直すと反映されます。")
+            result = conn.execute(st.text(sql)), rows)
+
+        with eng.connect() as conn:
+            cnt = pd.read_sql_query("SELECT COUNT(*) AS n FROM harvest_fact", conn)["n"][0]
+            
+        st.success("登録処理が完了しました（重複はスキップ）。")
+        st.info(f"現在の harvest_fact 件数：{int(cnt)}")
         st.rerun()
-    except SQLAlchemyError as e:
+
+    except Exception as e:
         st.error("DB登録に失敗しました。")
         st.exception(e)
-
