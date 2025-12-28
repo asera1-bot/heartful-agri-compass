@@ -11,22 +11,7 @@
 ---
 # directory
 
-.
-├── .git
-│   ├── COMMIT_EDITMSG
-│   ├── FETCH_HEAD
-│   ├── HEAD
-│   ├── ORIG_HEAD
-│   ├── branches
-│   ├── config
-│   ├── description
-│   ├── hooks
-│   ├── index
-│   ├── info
-│   ├── logs
-│   ├── objects
-│   ├── packed-refs
-│   └── refs
+./heartful-agri-compass
 ├── .gitignore
 ├── .streamlit
 │   └── secrets.toml
@@ -62,15 +47,7 @@
 │   └── __init__.py
 ├── requirements.txt
 ├── sample
-│   └── harvest_sample.csv
-└── venv
-    ├── bin
-    ├── etc
-    ├── include
-    ├── lib
-    ├── lib64 -> lib
-    ├── pyvenv.cfg
-    └── share
+   └── harvest_sample.csv
 ---
 
 # Demo
