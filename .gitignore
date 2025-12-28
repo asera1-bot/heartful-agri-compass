@@ -8,8 +8,6 @@ venv/
 # Local DB
 db/
 *.db
-
-db/
 *.sqlite
 *.sqlite3
 
@@ -18,3 +16,7 @@ __pycache__/
 *.pyc
 
 .streamlit/secrets.toml
+
+# stray files made by mistake
+[
+]

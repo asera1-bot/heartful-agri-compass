@@ -8,10 +8,23 @@
 
 ---
 
-## Features
+# Demo
+- App: https://heartful-agri-compass-vz7n5dmgakbpyfkgkvnr2h.streamlit.app/
+- Custom Domain: https://heartfulagri.com （Cloudflare Redirect → Streamlit）
+
+---
+
+# Login
+※ ログインID/パスワードは Streamlit secrets で管理しています。
+
+- ローカル: `.streamlit/secrets.toml` に設定
+- Streamlit Cloud: Secrets に設定
+
+---
+
+# Futures
 
 - ログイン機能（簡易）
-- SQLite（ローカルDB）
 - 収量CSVの取り込み
   - 文字コードフォールバック（utf-8-sig / cp932）
   - 収量の g / kg 表記を吸収して kg に正規化
@@ -24,41 +37,9 @@
 
 ---
 
-## Directory
+# Setup
 
-.
-├── app
-│ ├── main.py
-│ ├── core
-│ │ ├── auth.py
-│ │ └── db.py
-│ └── pages
-│ ├── 1_Compass.py
-│ ├── 2_SearchList.py
-│ └── 3_CSV_Upload.py
-├── etl
-│ └── import_harvest_csv.py
-├── data
-│ └── inbox
-│ └── harvest (ETL取り込み用CSV置き場)
-├── db
-│ └── heartful_dev.db (ローカルDB / git管理しない)
-├── requirements.txt
-└── venv/ (git管理しない)
-
-
----
-
-## Requirements
-
-- Python 3.12（または 3.11 でも可）
-- Linux / WSL2 / Ubuntu想定
-
----
-
-## Setup
-
-### 1) 仮想環境の作成
+1. 仮想環境の作成
 
 ```bash
 python3 -m venv venv
@@ -67,18 +48,21 @@ source venv/bin/activate
 依存関係インストール
 pip install -r requirements.txt
 
-
-（もし pip が無い/壊れてる場合）
-
+※　もしもpipが壊れている場合
 python3 -m pip install -r requirements.txt
 
-Run (Streamlit)
+---
 
-基本はこれでOK：
+# Secrets（ローカル）
+.streamlit/secrets.toml　を作成し、usersを設定してください（例）
+[users]
+admin = "admin_password"
+teppei = "teppei_password"
 
-./venv/bin/python -m streamlit run app/main.pystreamlit run app/main.py が動かない環境では、上の python -m 方式が確実です
-（PATHがvenvを見ていない/別pythonを見ているケースがあるため）
+起動
+python -m streamlit run Home.py
 
-起動後：
+---
 
-Local URL: http://localhost:8501
+# Sample CSV
+動作確認用のCSVは sample/harvest_sample.csv を参照してください。
