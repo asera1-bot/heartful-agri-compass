@@ -8,6 +8,71 @@
 
 ---
 
+---
+# directory
+
+.
+├── .git
+│   ├── COMMIT_EDITMSG
+│   ├── FETCH_HEAD
+│   ├── HEAD
+│   ├── ORIG_HEAD
+│   ├── branches
+│   ├── config
+│   ├── description
+│   ├── hooks
+│   ├── index
+│   ├── info
+│   ├── logs
+│   ├── objects
+│   ├── packed-refs
+│   └── refs
+├── .gitignore
+├── .streamlit
+│   └── secrets.toml
+├── ARCHITECTURE.md
+├── Home.py
+├── README.md
+├── app
+│   ├── __init__.py
+│   ├── __pycache__
+│   ├── common
+│   ├── core
+│   ├── farm_dashboard
+│   └── legacy_pages
+├── data
+│   ├── archive
+│   ├── db
+│   └── inbox
+├── db
+│   ├── heartful_dev.db
+│   └── heartful_real.db
+├── etl
+│   ├── __pycache__
+│   ├── backup_sqlite.sh
+│   ├── import_env_csv.py
+│   ├── import_harvest_csv.py
+│   ├── refresh_mv.sh
+│   └── run_dashboard.sh
+├── main.py
+├── pages
+│   ├── 1_Compass.py
+│   ├── 2_Search_list.py
+│   ├── 3_csv_upload.py
+│   └── __init__.py
+├── requirements.txt
+├── sample
+│   └── harvest_sample.csv
+└── venv
+    ├── bin
+    ├── etc
+    ├── include
+    ├── lib
+    ├── lib64 -> lib
+    ├── pyvenv.cfg
+    └── share
+---
+
 # Demo
 - App: https://heartful-agri-compass-vz7n5dmgakbpyfkgkvnr2h.streamlit.app/
 - Custom Domain: https://heartfulagri.com （Cloudflare Redirect → Streamlit）
