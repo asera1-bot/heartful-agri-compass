@@ -8,43 +8,38 @@ Heartful Agri Compass は、収量CSVを登録・蓄積し、
 クラウド環境（Streamlit Cloud) での再現性を重視した構成としています。
 
 # 2. 全体構成
-./heartful-agri-compass
+heartful-agri-compass/
 ├── .gitignore
-├── .streamlit
-│   └── secrets.toml
 ├── ARCHITECTURE.md
 ├── Home.py
 ├── README.md
-├── app
-│   ├── __init__.py
-│   ├── __pycache__
-│   ├── common
-│   ├── core
-│   ├── farm_dashboard
-│   └── legacy_pages
-├── data
-│   ├── archive
-│   ├── db
-│   └── inbox
-├── db
-│   ├── heartful_dev.db
-│   └── heartful_real.db
-├── etl
-│   ├── __pycache__
-│   ├── backup_sqlite.sh
-│   ├── import_env_csv.py
-│   ├── import_harvest_csv.py
-│   ├── refresh_mv.sh
-│   └── run_dashboard.sh
 ├── main.py
-├── pages
-│   ├── 1_Compass.py
-│   ├── 2_Search_list.py
-│   ├── 3_csv_upload.py
-│   └── __init__.py
 ├── requirements.txt
-├── sample
-   └── harvest_sample.csv
+├── app/
+│   ├── common/
+│   ├── core/
+│   │   ├── auth.py
+│   │   └── db.py
+│   ├── farm_dashboard/
+│   └── legacy_pages/
+├── pages/
+│   ├── 1_Compass.py
+│   ├── 2_Search_list.py
+│   └── 3_csv_upload.py
+├── etl/
+│   ├── import_harvest_csv.py
+│   ├── import_env_csv.py
+│   ├── backup_sqlite.sh
+│   ├── refresh_mv.sh
+│   └── run_dashboard.sh
+├── data/
+│   ├── inbox/
+│   └── archive/
+├── db/
+│   ├── heartful_dev.db
+│   └── heartful_real.db
+└── sample/
+    └── harvest_sample.csv
 
 # 3. 技術スタック
 - Feontend / UI:Stramlit
