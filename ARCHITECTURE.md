@@ -41,6 +41,7 @@ heartful-agri-compass/
 └── sample/
     └── harvest_sample.csv
 
+
 # 3. 技術スタック
 - Feontend / UI:Stramlit
 - Backend / Logic:Python 3.x,Pandas,SQLAlchemy
