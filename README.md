@@ -9,7 +9,9 @@
 ---
 
 ---
-# directory
+## Directory structure
+
+```text
 heartful-agri-compass/
 ├── .gitignore
 ├── ARCHITECTURE.md
@@ -42,6 +44,8 @@ heartful-agri-compass/
 │   └── heartful_real.db
 └── sample/
     └── harvest_sample.csv
+```
+
 
 ---
 
